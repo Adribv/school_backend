@@ -1,8 +1,6 @@
 const PushToken = require('../Model/PushToken');
 const User = require('../Model/Student');
 
-
-
 const saveToken= async(req,res)=>{
       try {
             const { userId, pushToken } = req.body;

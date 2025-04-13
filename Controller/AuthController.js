@@ -7,9 +7,9 @@ const FormData = require('form-data');
 const PushToken = require('../Model/PushToken');
 const admin = require('firebase-admin');
 
-const API_KEY = '1ed67ee114b6217894a2a1ca9f30784';  // Exactly as shown in the screenshot
-const SCHOOL_API_KEY = '1ed67ee114b6217894a2a1ca9f30784'; // Key for "GetSchools" endpoint
-const USERS_API_KEY = '1ed67ee114b6217894a2a1ca9f30784'; // Key for "GetUsers" endpoint (might be different)
+const API_KEY = '1ed67ee114b6217894a2a1ca9f30784';  
+const SCHOOL_API_KEY = '1ed67ee114b6217894a2a1ca9f30784';
+const USERS_API_KEY = '1ed67ee114b6217894a2a1ca9f30784';
 
 async function fetchSchools() {
     try {
