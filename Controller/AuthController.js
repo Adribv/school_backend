@@ -7,27 +7,14 @@ const FormData = require('form-data');
 const PushToken = require('../Model/PushToken');
 const admin = require('firebase-admin');
 
-const API_KEY = '1ed67ee114b6217894a2a1ca9f30784';  
-const SCHOOL_API_KEY = '1ed67ee114b6217894a2a1ca9f30784';
+const API_KEY = process.env.API_KEY || '1ed67ee114b6217894a2a1ca9f30784';  
+const SCHOOL_API_KEY = process.env.SCHOOL_API_KEY || '1ed67ee114b6217894a2a1ca9f30784';
 const USERS_API_KEY = '1ed67ee114b6217894a2a1ca9f30784';
 
 async function fetchSchools() {
     try {
         console.log('Fetching schools with API key:', SCHOOL_API_KEY);
         
-        // Hardcoded schools for development 
-        // TODO: Remove when API access is fixed
-        console.log('API access is currently not working - using hardcoded schools');
-        return [
-            {
-                licence_id: 101,
-                school_name: "THE CRESCENT SCHOOL - SDL STATE",
-                access_key: "1ed67ee114b6217894a2a1ca9f30784"
-            }
-        ];
-        
-        // The code below is kept for when API access is resolved
-        /*
         // Make the direct API request with form-urlencoded
         const response = await axios({
             method: 'post',
@@ -47,7 +34,6 @@ async function fetchSchools() {
         
         console.error("❌ Invalid response from school API:", response.data);
         return [];
-        */
     } catch (error) {
         console.error("❌ Error fetching schools:", error.message);
         console.error("❌ Error details:", error);
@@ -174,84 +160,31 @@ const loginParent = async (req, res) => {
     }
 };
 
-async function validateStudentInSchool(studentId, schoolId = null) {
+async function validateStudentInSchool(studentId) {
+    const formData = new FormData();
+    formData.append('api_key', '1ed67ee114b62178f94a2a1ca9f30784');
+  
     try {
-        console.log(`Validating student: ${studentId}${schoolId ? ` for school: ${schoolId}` : ''}`);
-        
-        // Hard-coded student validation for development
-        // TODO: Remove when API access is fixed
-        if (studentId === '5' || studentId === '6' || studentId === '7' || studentId === '8') {
-            console.log(`DEVELOPMENT MODE: Validating student ${studentId} as existing`);
-            return true;
-        }
-        
-        console.log('API access is currently not working - using development mode validation');
+      const response = await axios.post(
+        'https://app.edisha.org/index.php/resource/GetUsers',
+        formData
+      );
+  
+      if (response.data.status && Array.isArray(response.data.data)) {
+        const studentIdStr = String(studentId).trim();
+        const foundUser = response.data.data.find(user => String(user.user_id).trim() === studentIdStr);
+        console.log(`Validation result for student ${studentId}: ${!!foundUser}`);
+        return !!foundUser;
+      } else {
+        console.error("❌ Invalid response from GetUsers API:", response.data);
         return false;
-        
-        // The code below is kept for when API access is resolved
-        /*
-        // Create params with URLSearchParams (better for form encoding)
-        const params = new URLSearchParams();
-        params.append('api_key', USERS_API_KEY);
-        console.log('Using API key:', USERS_API_KEY);
-        
-        // Try with URLSearchParams which might work better
-        const response = await axios.post(
-            'https://app.edisha.org/index.php/resource/GetUsers', 
-            params,
-            {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                }
-            }
-        );
-        
-        console.log(`API response status:`, response.data.status);
-        
-        if (response.data.status && Array.isArray(response.data.data)) {
-            console.log(`Received ${response.data.data.length} users from API`);
-            
-            // Check if studentId exists in the users data - be more flexible with comparison
-            const studentIdStr = String(studentId).trim();
-            console.log(`Looking for student ID: '${studentIdStr}'`);
-            
-            const foundUser = response.data.data.find(user => {
-                const userIdStr = String(user.user_id).trim();
-                return userIdStr === studentIdStr;
-            });
-            
-            if (foundUser) {
-                console.log(`Found matching user: ${JSON.stringify(foundUser)}`);
-                
-                // If schoolId is provided, validate that the student belongs to that school
-                if (schoolId) {
-                    const schoolIdStr = String(schoolId).trim();
-                    const userSchoolIdStr = String(foundUser.licence_id || '').trim();
-                    const schoolMatch = userSchoolIdStr === schoolIdStr;
-                    
-                    if (!schoolMatch) {
-                        console.log(`Student ${studentIdStr} found but belongs to school ${userSchoolIdStr}, not ${schoolIdStr}`);
-                        return false;
-                    }
-                }
-                
-                return true;
-            } else {
-                console.log(`No user found with ID: ${studentIdStr}`);
-                return false;
-            }
-        } else {
-            console.error("❌ Invalid API response:", response.data);
-            return false;
-        }
-        */
+      }
     } catch (error) {
-        console.error("❌ Error validating student:", error.message);
-        // Log full error for debugging
-        console.error("❌ Error details:", error);
-        return false;
+      console.error("❌ Error validating student:", error.message);
+      return false;
     }
-}
+  }
+
 
 const addStudent = async (req, res) => {
     try {
