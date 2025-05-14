@@ -8,38 +8,32 @@ const PushToken = require('../Model/PushToken');
 const admin = require('firebase-admin');
 
 const API_KEY = process.env.API_KEY || '1ed67ee114b6217894a2a1ca9f30784';  
-const SCHOOL_API_KEY = process.env.SCHOOL_API_KEY || '1ed67ee114b6217894a2a1ca9f30784';
+const SCHOOL_API_KEY = process.env.SCHOOL_API_KEY || '8d4777c2-da71-408e-974d-daa29b142689';
 const USERS_API_KEY = '1ed67ee114b6217894a2a1ca9f30784';
 
 async function fetchSchools() {
+    const formData = new FormData();
+    formData.append('api_key', SCHOOL_API_KEY);
+  
     try {
-        console.log('Fetching schools with API key:', SCHOOL_API_KEY);
-        
-        // Make the direct API request with form-urlencoded
-        const response = await axios({
-            method: 'post',
-            url: 'https://app.edisha.org/index.php/resource/GetSchools',
-            data: `api_key=${SCHOOL_API_KEY}`,
-            headers: { 
-                'Content-Type': 'application/x-www-form-urlencoded' 
-            }
-        });
-        
-        console.log(`Schools API response status:`, response.data.status);
-        
-        if (response.data.status && Array.isArray(response.data.data)) {
-            console.log(`Received ${response.data.data.length} schools`);
-            return response.data.data;
-        }
-        
-        console.error("❌ Invalid response from school API:", response.data);
+      const response = await axios.post(
+        'https://app.edisha.org/index.php/resource/GetSchools',
+        formData
+      );
+  
+      if (response.data.status && Array.isArray(response.data.data)) {
+        console.log(`Received ${response.data.data.length} schools`);
+        return response.data.data;
+      } else {
+        console.error("❌ Invalid response from GetSchools API:", response.data);
         return [];
+      }
     } catch (error) {
-        console.error("❌ Error fetching schools:", error.message);
-        console.error("❌ Error details:", error);
-        return [];
+      console.error("❌ Error fetching schools:", error.message);
+      return [];
     }
-}
+  }  
+  
 
 async function fetchSchoolUsers() {
     try {
