@@ -6,9 +6,24 @@ const PushToken = require('../Model/PushToken');
 const axios = require('axios');
 const FormData = require('form-data');
 
+// Add API key for notification security
+const NOTIFICATION_API_KEY = process.env.NOTIFICATION_API_KEY || '8d4777c2-da71-408e-974d-daa29b142689';
+
 admin.initializeApp({
     credential: admin.credential.cert(FB),
 });
+
+// Helper function to validate API key
+const validateApiKey = (req, res, next) => {
+  const providedApiKey = req.headers['x-api-key'] || req.body.api_key;
+  
+  if (!providedApiKey || providedApiKey !== NOTIFICATION_API_KEY) {
+    return res.status(401).json({ error: "Unauthorized: Invalid API key" });
+  }
+  
+  // Continue to the actual route handler
+  return next();
+};
 
 const fetchSchoolUsers = async (licenseId) => {
     try {
@@ -136,6 +151,10 @@ const sendFCMNotificationBatch = async (tokens, title, body, data = {}) => {
 
 const sendNotification = async (req, res) => {
   try {
+    // Validate API key first
+    const apiKeyResult = validateApiKey(req, res, () => true);
+    if (apiKeyResult !== true) return apiKeyResult;
+    
     const { userIds, title, body, data = {} } = req.body;
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
@@ -197,9 +216,12 @@ const sendNotification = async (req, res) => {
   }
 };
 
-
 const SendNotificationToAll = async (req, res) => {
   try {
+    // Validate API key first
+    const apiKeyResult = validateApiKey(req, res, () => true);
+    if (apiKeyResult !== true) return apiKeyResult;
+    
     const { title, body, data = {}, licenseId } = req.body;
     console.log("Received licenseId:", licenseId);
 
@@ -268,6 +290,10 @@ const SendNotificationToAll = async (req, res) => {
 
 const sendFCMNotificationToParent = async (req, res) => {
     try {
+        // Validate API key first
+        const apiKeyResult = validateApiKey(req, res, () => true);
+        if (apiKeyResult !== true) return apiKeyResult;
+        
         const { studentId, studentName, title, body, data = {} } = req.body;
 
         // Find all parents who have this student in their students array
@@ -306,6 +332,10 @@ const sendFCMNotificationToParent = async (req, res) => {
 
 const testSendFCMNotification = async (req, res) => {
   try {
+    // Validate API key first
+    const apiKeyResult = validateApiKey(req, res, () => true);
+    if (apiKeyResult !== true) return apiKeyResult;
+    
     const { title = "Test Title", body = "Test Body", data = {} } = req.body;
     const testDeviceToken = "f87Xjh53RXSaWpDPWFHkh_:APA91bH1tj_Yy_AvFMmpu4tUwtinEnBdP1qVzuf5poY_maSAsqDkgvJtzZ9k0T4MmawHpDjQM42nINN6PV7IZxpU9klYFYCM2w2ap3_xGfBbV_paWacn1oc";
     const message = {
