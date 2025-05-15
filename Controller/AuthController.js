@@ -5,7 +5,11 @@ const bcrypt = require('bcrypt');
 const axios = require('axios');
 const FormData = require('form-data');
 const PushToken = require('../Model/PushToken');
-const admin = require('firebase-admin');
+// Replace the Firebase Admin import and initialization
+// const admin = require('firebase-admin');
+// admin.initializeApp({ ... });
+
+const admin = require('../firebase/admin');
 
 const API_KEY = process.env.API_KEY || '1ed67ee114b6217894a2a1ca9f30784';  
 const SCHOOL_API_KEY = process.env.SCHOOL_API_KEY || '8d4777c2-da71-408e-974d-daa29b142689';
@@ -131,6 +135,7 @@ const loginParent = async (req, res) => {
 
         console.log('Attempting login for phone number:', phoneNumber);
         const parent = await PushToken.findOne({ phoneNumber });
+        console.log(parent)
         if (!parent) {
             console.log('Parent not found for phone number:', phoneNumber);
             return res.status(404).json({ message: "Parent not found. Please register first." });

@@ -1,17 +1,15 @@
 require('dotenv').config();
 const Notification = require('../Model/Notification');
-const FB = require('../serviceAccountKey.json');
-const admin = require('firebase-admin');
+
+// Use the shared admin instance instead
+const admin = require('../firebase/admin');
+
 const PushToken = require('../Model/PushToken');
 const axios = require('axios');
 const FormData = require('form-data');
 
 // Add API key for notification security
 const NOTIFICATION_API_KEY = process.env.NOTIFICATION_API_KEY || '8d4777c2-da71-408e-974d-daa29b142689';
-
-admin.initializeApp({
-    credential: admin.credential.cert(FB),
-});
 
 // Helper function to validate API key
 const validateApiKey = (req, res, next) => {
