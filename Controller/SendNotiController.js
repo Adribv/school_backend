@@ -1,10 +1,13 @@
 require('dotenv').config();
 const Notification = require('../Model/Notification');
+// Replace the Firebase Admin import and initialization
+// const FB = require('../serviceAccountKey.json');
+// const admin = require('firebase-admin');
+// admin.initializeApp({ ... });
 
-// Use the shared admin instance instead
 const admin = require('../firebase/admin');
-
 const PushToken = require('../Model/PushToken');
+const PushNotificationLog = require('../Model/PushNotificationLog');
 const axios = require('axios');
 const FormData = require('form-data');
 
@@ -63,45 +66,7 @@ const fetchSchoolUsers = async (licenseId) => {
       return [];
     }
   };
-  
 
-// async function sendFCMNotificationBatch(studentIds, title, body, data = {}) {
-//     try {
-//       for (const studentId of studentIds) {
-//         // Find the PushToken document that contains this student
-//         const tokenDoc = await PushToken.findOne({ 'students.studentId': studentId });
-//         console.log("Token:", tokenDoc);
-//         if (!tokenDoc || !tokenDoc.pushToken) {
-//           console.warn(`⚠️ No FCM push token found for student ID: ${studentId}`);
-//           continue;
-//         }
-  
-//         const message = {
-//           token: tokenDoc.pushToken,
-//           notification: {
-//             title,
-//             body
-//           },
-//           data: {
-//             ...data,
-//             customData: "Crescent Notification"
-//           }
-//         };
-  
-//         try {
-//             const response = await admin.messaging().send(message);
-//             console.log("✅ Sent to student ID", studentId, "→", response);
-//           } catch (sendErr) {
-//             console.error("❌ Failed to send to student ID", studentId);
-//             console.error("Error code:", sendErr.code);
-//             console.error("Full error:", sendErr);
-//           }
-          
-//       }
-//     } catch (error) {
-//       console.error("❌ Error sending FCM push notifications:", error.message);
-//     }
-//   }
 const sendFCMNotificationBatch = async (tokens, title, body, data = {}) => {
   try {
     for (const token of tokens) {
@@ -149,7 +114,6 @@ const sendFCMNotificationBatch = async (tokens, title, body, data = {}) => {
 
 const sendNotification = async (req, res) => {
   try {
-    // Validate API key first
     const apiKeyResult = validateApiKey(req, res, () => true);
     if (apiKeyResult !== true) return apiKeyResult;
     
@@ -188,7 +152,6 @@ const sendNotification = async (req, res) => {
       });
     }
 
-    // Save notifications
     const notifications = validStudentIds.map(studentId => ({
       userId: studentId,
       title,
@@ -198,8 +161,16 @@ const sendNotification = async (req, res) => {
     }));
     await Notification.insertMany(notifications);
 
-    // Send push notifications
     await sendFCMNotificationBatch(tokensToSend, title, body, data);
+
+    // Save log
+    await PushNotificationLog.create({
+      title,
+      body,
+      data,
+      userIds: validStudentIds,
+      forAll: false
+    });
 
     res.status(200).json({
       message: "Notifications sent successfully",
@@ -216,7 +187,6 @@ const sendNotification = async (req, res) => {
 
 const SendNotificationToAll = async (req, res) => {
   try {
-    // Validate API key first
     const apiKeyResult = validateApiKey(req, res, () => true);
     if (apiKeyResult !== true) return apiKeyResult;
     
@@ -257,7 +227,6 @@ const SendNotificationToAll = async (req, res) => {
       return res.status(404).json({ error: "No valid tokens found to send notifications" });
     }
 
-    // Save to Notification collection
     const notifications = validStudentIds.map(studentId => ({
       userId: studentId,
       title,
@@ -267,8 +236,16 @@ const SendNotificationToAll = async (req, res) => {
     }));
     await Notification.insertMany(notifications);
 
-    // Send notifications
     await sendFCMNotificationBatch(tokensToSend, title, body, data);
+
+    // Save log
+    await PushNotificationLog.create({
+      title,
+      body,
+      data,
+      userIds: [], 
+      forAll: true
+    });
 
     res.status(200).json({
       message: "Notifications sent successfully to school users",
@@ -284,6 +261,28 @@ const SendNotificationToAll = async (req, res) => {
   }
 };
 
+const getNotificationLogs = async (req, res) => {
+  try {
+    const apiKeyResult = validateApiKey(req, res, () => true);
+    if (apiKeyResult !== true) return apiKeyResult;
+
+    const logs = await PushNotificationLog.find().sort({ timestamp: -1 });
+
+    const formattedLogs = logs.map(log => ({
+      title: log.title,
+      body: log.body,
+      userIds: log.forAll ? "ALL" : log.userIds,
+      timestamp: log.timestamp
+    }));
+
+    res.status(200).json({ notifications: formattedLogs });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to fetch notification logs",
+      details: error.message
+    });
+  }
+};
   
 
 const sendFCMNotificationToParent = async (req, res) => {
@@ -373,4 +372,4 @@ const testSendFCMNotification = async (req, res) => {
   }
 };
 
-module.exports={sendNotification,SendNotificationToAll,sendFCMNotificationToParent,testSendFCMNotification}
+module.exports={sendNotification,SendNotificationToAll,sendFCMNotificationToParent,testSendFCMNotification,getNotificationLogs}
